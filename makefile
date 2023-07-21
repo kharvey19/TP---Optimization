@@ -7,10 +7,10 @@ OBJECT = $(SOURCE:.c=.o)
 all: $(TARGET)
 
 $(TARGET): %: %.o
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $@ -L/Users/katherineharvey/cJSON -lcjson
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@ 
 
 debug: CFLAGS += -g
 debug: all

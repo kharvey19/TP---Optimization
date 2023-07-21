@@ -1,18 +1,32 @@
 #include <stdio.h>
 #include <cjson/cJSON.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <sys/stat.h>
+
+#define RESULT_ERROR (-1)
+
+long getSize(char *filename) {
+    struct stat file_status;
+    if (stat(filename, &file_status) < 0) {
+        return RESULT_ERROR;
+    }
+    return file_status.st_size;
+}
 
 int main() {
+    char *filename = "useCase.json";
 	// open the file
-	FILE *fp = fopen("use.json", "r");
+	FILE *fp = fopen("useCase.json", "r");
 	if (fp == NULL) {
 		printf("Error: Unable to open the file.\n");
 		return 1;
 	}
 
 	// read the file contents into a string
-	char buffer[1024];
-	int len = fread(buffer, 1, sizeof(buffer), fp);
+	char buffer[getSize(filename)];
+	fread(buffer, 1, sizeof(buffer), fp);
 	fclose(fp);
 
 	// parse the JSON data
