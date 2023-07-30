@@ -1,13 +1,13 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c99
-TARGET = read test
-SOURCE = read.c test.c
+TARGET = readAttractions findDistance 
+SOURCE = readAttractions.c findDistance.c 
 OBJECT = $(SOURCE:.c=.o)
 
 all: $(TARGET)
 
 $(TARGET): %: %.o
-	$(CC) $(CFLAGS) $< -o $@ -L/Users/katherineharvey/cJSON -lcjson
+	$(CC) $(CFLAGS) $< -o $@ -L../cJSON -lcjson
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@ 

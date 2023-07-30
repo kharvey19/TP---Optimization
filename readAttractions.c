@@ -53,5 +53,6 @@ int main() {
 
 	// delete the JSON object
 	cJSON_Delete(json);
+
 	return 0;
 }
