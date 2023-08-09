@@ -104,7 +104,6 @@ unsigned long** createMatrix(int rows, int cols, int distanceMatrix[MAX_ROWS][MA
             }
         }
     }
-
     return matrix;
 }
 
@@ -327,7 +326,7 @@ int main() {
 
 		writeMatrixToJsonFile(adjustedMatrix, maxAttraction, maxAttraction, "adjustedMatrix.json");
 
-		for (int i = 0; i < rows; i++) {
+		for (int i = 0; i < maxAttraction + 1; i++) {
 			free(adjustedMatrix[i]);
 		}
 		free(attractionLabels);
