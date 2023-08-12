@@ -14,19 +14,32 @@ void flip(int *tour, int *newTour, int a, int b, int tourLength) {
         backFillIndex = a;
     }
 
-    // Copy elements before the flip section
+    // copy elements before the flip section
     for (int i = 0; i < frontFillIndex; i++) {
         newTour[i] = tour[i];
     }
 
-    // Copy elements in reverse order for the flip section
+    // copy elements in reverse order for the flip section
     for (int i = 0; i <= backFillIndex - frontFillIndex; i++) {
         newTour[frontFillIndex + i] = tour[backFillIndex - i];
     }
 
-    // Copy elements after the flip section
+    // copy elements after the flip section
     for (int i = backFillIndex + 1; i < tourLength; i++) {
         newTour[i] = tour[i];
+    }
+}
+
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void shuffleArray(int arr[], int size) {
+    for (int i = size - 2; i > 1; i--) {
+        int j = rand() % (i - 1) + 1; 
+        swap(&arr[i], &arr[j]);  
     }
 }
 
@@ -37,10 +50,10 @@ int main() {
 
     srand(time(NULL)); 
 
-    int p1 = rand() % tourLength;
+    int p1 = (rand() % (tourLength - 2)) + 1;
     int p2 = p1;
     while (p2 == p1) {
-        p2 = rand() % tourLength;
+        p2 = (rand() % (tourLength - 2)) + 1;
     }
 
     printf("\n\nOriginal Tour: ");
@@ -57,5 +70,12 @@ int main() {
     }
     printf("\n\n");
 
+    shuffleArray(tour, tourLength);
+
+    printf("Shuffled Tour: ");
+    for (int i = 0; i < tourLength; i++) {
+        printf("%d ", tour[i]);
+    }
+    printf("\n\n");
     return 0;
 }

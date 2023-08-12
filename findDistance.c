@@ -4,13 +4,17 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <sys/stat.h>
+#include <time.h>
 
 /*............................................................................*/
 
 #define RESULT_ERROR (-1)
+
 /* Max rows for matrices */
 #define MAX_ROWS 150
 #define MAX_COLS 150
+
+#define MAX_TOUR 15
 
 /*............................................................................*/
 
@@ -175,6 +179,55 @@ void printDash() {
 	printf("\n\n");
 }
 
+int getCost(unsigned long** adjustedMatrix, int* attractionLabels, int rows) {
+	int count = 0;
+
+	for (int i = 0; i < rows - 1; i++) {
+		count = count + adjustedMatrix[attractionLabels[i]][attractionLabels[i + 1]];
+	}
+
+	return count;
+}
+
+void flip(int *tour, int *newTour, int a, int b, int tourLength) {
+    int frontFillIndex, backFillIndex;
+    if (a < b) {
+        frontFillIndex = a;
+        backFillIndex = b;
+    } else {
+        frontFillIndex = b;
+        backFillIndex = a;
+    }
+
+    // Copy elements before the flip section
+    for (int i = 0; i < frontFillIndex; i++) {
+        newTour[i] = tour[i];
+    }
+
+    // Copy elements in reverse order for the flip section
+    for (int i = 0; i <= backFillIndex - frontFillIndex; i++) {
+        newTour[frontFillIndex + i] = tour[backFillIndex - i];
+    }
+
+    // Copy elements after the flip section
+    for (int i = backFillIndex + 1; i < tourLength; i++) {
+        newTour[i] = tour[i];
+    }
+}
+
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void shuffleArray(int arr[], int size) {
+    for (int i = size - 2; i > 1; i--) {
+        int j = rand() % (i - 1) + 1; 
+        swap(&arr[i], &arr[j]);  
+    }
+}
+
 /*............................................................................*/
 
 int main() {
@@ -306,13 +359,56 @@ int main() {
 
 		printDash();
 		
-		int count = 0;
+		int original_cost = getCost(adjustedMatrix, attractionLabels, rows);
 
-		for (int i = 0; i < rows - 1; i++) {
-			count = count + adjustedMatrix[attractionLabels[i]][attractionLabels[i + 1]];
+		printf("Total walking time of entered sequence: %d minutes - %0.2f hours\n", original_cost, ((float)original_cost) / 60);
+
+		int *original_tour = attractionLabels;
+		int best_cost = original_cost;
+		int *best_tour = original_tour;
+		int max_loops = 100;
+		int new_tour[MAX_TOUR], new_cost;
+
+		printf("Orig. Array: ");
+		for (int i = 0; i < rows; i++) {
+			printf("%d ", best_tour[i]);
+		}
+		printf("\n\n");
+
+		while (max_loops-- > 0) {
+			srand(time(NULL)); 
+
+			int p1 = (rand() % (rows - 2)) + 1;
+			int p2 = p1;
+			while (p2 == p1) {
+				p2 = (rand() % (rows - 2)) + 1;
+			}
+
+			flip(original_tour, new_tour, p1, p2, rows);
+			new_cost = getCost(adjustedMatrix, new_tour, rows);
+
+			int gain = original_cost - new_cost; 
+
+			if (gain > 0) {
+				if (new_cost < best_cost) {
+					best_cost = new_cost;
+					memcpy(best_tour, new_tour, rows * sizeof(int));
+				}
+
+				memcpy(original_tour, best_tour, rows * sizeof(int));
+				shuffleArray(original_tour, rows);
+
+				printf("Optimized Array: ");
+				for (int i = 0; i < rows; i++) {
+					printf("%d ", new_tour[i]);
+				}
+				printf("| Cost: %d \n", new_cost);
+			}
 		}
 
-		printf("Total walking time of entered sequence: %d minutes - %0.2f hours", count, ((float)count) / 60);
+
+		printf("\nTotal walking time of entered sequence: %d minutes - %0.2f hours\n", best_cost, ((float)best_cost) / 60);
+
 
 		printDash();
 
