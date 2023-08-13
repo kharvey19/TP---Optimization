@@ -22,9 +22,15 @@
 	1. getSize -> Determines size of file 
 	2. getMax -> gets the max element in an array 
 	3. printMatrix -> used to print original distance matrix 
-	4. createMatrix -> creates a square matrix of 0s based on the inputted 
-	   length (max attraction)
-	5. writeMatrixToJsonFile ->  writes the matrix to the json file */
+	4. createMatrix -> creates a square matrix with the correct values and 
+	   indexes for walking times 
+	5. writeMatrixToJsonFile ->  writes the matrix to the json file
+	6. printDash -> prints a line of dashes to separate printed outputs 
+	7. getCost -> gets the cost (walking time) for a tour
+	8. flip -> given 2 indices (and other info) will flip/ reverse a substring
+	   in the tour 
+	9. swap -> swaps to elements in an array 
+	10. shuffleArray -> shuffles an array, omitting the first and last element */
 
 long getSize(char *filename) {
     struct stat file_status;
@@ -73,7 +79,6 @@ void printMatrix(int rows, int cols, int distanceMatrix[MAX_ROWS][MAX_COLS]) {
 		}
 		printf("\n");
 	}
-		// printf("\n");
 	
 }
 
