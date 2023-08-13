@@ -199,17 +199,17 @@ void flip(int *tour, int *newTour, int a, int b, int tourLength) {
         backFillIndex = a;
     }
 
-    // Copy elements before the flip section
+    // copy elements before the flip section
     for (int i = 0; i < frontFillIndex; i++) {
         newTour[i] = tour[i];
     }
 
-    // Copy elements in reverse order for the flip section
+    // copy elements in reverse order for the flip section
     for (int i = 0; i <= backFillIndex - frontFillIndex; i++) {
         newTour[frontFillIndex + i] = tour[backFillIndex - i];
     }
 
-    // Copy elements after the flip section
+    // copy elements after the flip section
     for (int i = backFillIndex + 1; i < tourLength; i++) {
         newTour[i] = tour[i];
     }
@@ -369,7 +369,7 @@ int main() {
 		int max_loops = 100;
 		int new_tour[MAX_TOUR], new_cost;
 
-		printf("Orig. Array: ");
+		printf("\nOrig. Array: ");
 		for (int i = 0; i < rows; i++) {
 			printf("%d ", best_tour[i]);
 		}
@@ -390,6 +390,9 @@ int main() {
 			int gain = original_cost - new_cost; 
 
 			if (gain > 0) {
+				clock_t start_time, end_time;
+    			start_time = clock(); 
+
 				if (new_cost < best_cost) {
 					best_cost = new_cost;
 					memcpy(best_tour, new_tour, rows * sizeof(int));
@@ -398,16 +401,21 @@ int main() {
 				memcpy(original_tour, best_tour, rows * sizeof(int));
 				shuffleArray(original_tour, rows);
 
+				end_time = clock();
+				// not sure if this is right
+				double cpu_time_used = ((double) (end_time - start_time)) / CLOCKS_PER_SEC;
+
 				printf("Optimized Array: ");
 				for (int i = 0; i < rows; i++) {
 					printf("%d ", new_tour[i]);
 				}
-				printf("| Cost: %d \n", new_cost);
+				printf("| Cost: %d | ", new_cost);
+				printf("CPU: %f seconds\n", cpu_time_used);
+
 			}
 		}
 
-
-		printf("\nTotal walking time of entered sequence: %d minutes - %0.2f hours\n", best_cost, ((float)best_cost) / 60);
+		printf("\nTotal walking time after Lin-Kernighan: %d minutes - %0.2f hours\n", best_cost, ((float)best_cost) / 60);
 
 
 		printDash();
