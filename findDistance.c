@@ -266,6 +266,8 @@ int main() {
 	int rows = cJSON_GetArraySize(attractions);
 	int cols = cJSON_GetArraySize(attractions);
 	cJSON *distanceData = cJSON_GetObjectItem(json, "DistanceMatrix");
+	cJSON *waitData = cJSON_GetObjectItem(json, "WaitMatrix");
+	cJSON *rideMatrix = cJSON_GetObjectItem(json, "RideMatrix");
 
 /*............................................................................*/
 
@@ -311,6 +313,47 @@ int main() {
 
 /*............................................................................*/
 
+	int wait_row_idx = 0;
+	cJSON *waitRowArray, *waitCellValue;
+	int waitMatrix[MAX_ROWS][MAX_COLS];
+	int wait_rows = 12;
+	int wait_cols = 57;
+
+	cJSON_ArrayForEach(waitRowArray, waitData) {
+		if (wait_row_idx >= MAX_ROWS) {
+			printf("Too many rows in the JSON data.\n");
+			cJSON_Delete(json);
+			return 1;
+		}
+
+		int wait_col_idx = 0;
+		cJSON_ArrayForEach(waitCellValue, waitRowArray) {
+			if (wait_col_idx >= MAX_COLS) {
+				printf("Too many columns in the JSON data.\n");
+				cJSON_Delete(json);
+				return 1;
+			}
+
+			waitMatrix[wait_row_idx][wait_col_idx] = waitCellValue->valueint;
+			wait_col_idx++;
+		}
+
+		if (wait_col_idx != wait_cols) {
+			printf("Invalid number of columns in row %d.\n", wait_row_idx);
+			cJSON_Delete(json);
+			return 1;
+		}
+
+		wait_row_idx++;
+	}
+
+	if (wait_row_idx != wait_rows) {
+		printf("Invalid number of rows in the JSON data.\n");
+		cJSON_Delete(json);
+		return 1;
+	}
+
+/*............................................................................*/
 	// creating an array for the attractions + determining max attraction
     if (cJSON_IsArray(attractions)) {
 		cJSON *i;
@@ -323,6 +366,11 @@ int main() {
         }
 	
 		int maxAttraction = getMax(attractionLabels, rows);
+
+		int rideMatrixTotal = 0;
+		cJSON_ArrayForEach(i, rideMatrix) {
+			rideMatrixTotal = rideMatrixTotal + i -> valueint;
+		}
 
 /*............................................................................*/
 
@@ -380,9 +428,9 @@ int main() {
 		}
 		printf("\n\n");
 
-		while (max_loops-- > 0) {
-			srand(time(NULL)); 
+		srand(time(NULL));
 
+		while (max_loops-- > 0) {
 			int p1 = (rand() % (rows - 2)) + 1;
 			int p2 = p1;
 			while (p2 == p1) {
@@ -421,7 +469,11 @@ int main() {
 		}
 
 		printf("\nTotal walking time after Lin-Kernighan: %d minutes - %0.2f hours\n", best_cost, ((float)best_cost) / 60);
-
+		printf("Total time including ride matrix: %d\n\n", rideMatrixTotal + best_cost);
+		printf("Most Optimal Tour: ");
+		for (int i = 0; i < rows; i++) {
+			printf("%d ", best_tour[i]);
+		}
 
 		printDash();
 
