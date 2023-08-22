@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <string.h>
 
 /*............................................................................*/
 
@@ -30,8 +31,19 @@
 	8. flip -> given 2 indices (and other info) will flip/ reverse a substring
 	   in the tour 
 	9. swap -> swaps to elements in an array 
-	10. shuffleArray -> shuffles an array, omitting the first and last element */
-
+	10. shuffleArray -> shuffles an array, omitting the first and last element 
+	11. clockTime -> given the minutes since midnight, returns string for actual
+		time in the day
+	12. generateNewIndices -> returns an array of the original indices of the 
+		shuffled array
+	13. calculateSegments -> returns the number of segments that have passed 
+		since the start time 
+	14. printArray -> prints arrays 
+	15. calculateWait -> calculate the average of the segments the time is in 
+		between */
+	
+	
+// Determines size of file 
 long getSize(char *filename) {
     struct stat file_status;
     if (stat(filename, &file_status) < 0) {
@@ -40,11 +52,14 @@ long getSize(char *filename) {
     return file_status.st_size;
 }
 
+// gets the max element in an array
 int getMax(int *arr, int length) {
     if (length <= 0) {
         return RESULT_ERROR;
     }
 
+	/* makes the first element of the array the max then checks every element
+	   and replaces max with larger values until it reaches the end of the array */
     int max = arr[0];
     for (int i = 1; i < length; i++) {
         if (arr[i] > max) {
@@ -54,6 +69,7 @@ int getMax(int *arr, int length) {
     return max;
 }
 
+// literally prints the matrix in the terminal 
 void printMatrix(int rows, int cols, int distanceMatrix[MAX_ROWS][MAX_COLS]) {
 
 	int maxDigits = 2;
@@ -82,6 +98,8 @@ void printMatrix(int rows, int cols, int distanceMatrix[MAX_ROWS][MAX_COLS]) {
 	
 }
 
+/* creates a square matrix with the correct values and indexes for walking 
+   times using the distance matrix  */
 unsigned long** createMatrix(int rows, int cols, int distanceMatrix[MAX_ROWS][MAX_COLS], int* attractionLabels, int labelLength) {
 	
 	// update rows and cols, so that they are + 1
@@ -176,6 +194,7 @@ void writeMatrixToJsonFile(unsigned long** matrix, int rows, int cols, const cha
     cJSON_Delete(root);
 }
 
+// prints a line of dashes to separate printed outputs 
 void printDash() {
 	printf("\n\n");
 	for (int i = 0; i < 50; i++) {
@@ -184,6 +203,7 @@ void printDash() {
 	printf("\n\n");
 }
 
+// gets the cost (walking time) for a tour, by checking the distance matrix 
 int getCost(unsigned long** adjustedMatrix, int* attractionLabels, int rows) {
 	int count = 0;
 
@@ -194,6 +214,7 @@ int getCost(unsigned long** adjustedMatrix, int* attractionLabels, int rows) {
 	return count;
 }
 
+// given 2 indices (and other info) will flip/ reverse a substring in the tour 
 void flip(int *tour, int *newTour, int a, int b, int tourLength) {
     int frontFillIndex, backFillIndex;
     if (a < b) {
@@ -220,17 +241,86 @@ void flip(int *tour, int *newTour, int a, int b, int tourLength) {
     }
 }
 
+// swap
 void swap(int *a, int *b) {
     int temp = *a;
     *a = *b;
     *b = temp;
 }
 
+// shuffles an array, omitting the first and last element 
 void shuffleArray(int arr[], int size) {
     for (int i = size - 2; i > 1; i--) {
         int j = rand() % (i - 1) + 1; 
         swap(&arr[i], &arr[j]);  
     }
+}
+
+// given the minutes since midnight, returns string for actual time in the day
+char* clockTime(int minutes) {
+    char* timeStr = (char*)malloc(13 * sizeof(char));
+    if (timeStr == NULL) {
+        printf("Memory allocation failed.\n");
+        return NULL;
+    }
+
+    int hours = minutes / 60;
+    int mins = minutes % 60;
+
+    char amPm[3]; // For "AM" or "PM"
+    if (hours >= 12) {
+        strcpy(amPm, "PM");
+        if (hours > 12) {
+            hours -= 12;
+        }
+    } else {
+        strcpy(amPm, "AM");
+        if (hours == 0) {
+            hours = 12;
+        }
+    }
+
+    sprintf(timeStr, "%02d:%02d %s", hours, mins, amPm);
+
+    return timeStr;
+}
+
+// returns an array of the original indices of the shuffled array
+void generateNewIndices(const int shuffled[], int size, const int original[], int newIndices[]) {
+    for (int i = 0; i < size; i++) {
+        int currentElement = shuffled[i];
+        for (int j = 0; j < size; j++) {
+            if (original[j] == currentElement) {
+                newIndices[i] = j;
+                break;
+            }
+        }
+    }
+}
+
+// returns the number of segments that have passed since the start time 
+int calculateSegments(int startMinutes, int currentMinutes, int segment) {
+    int minutesPassed = currentMinutes - startMinutes;
+    int segmentsPassed = minutesPassed / segment;
+    
+    return segmentsPassed;
+}
+
+// prints arrays 
+void printArray(const int arr[], int size) {
+    for (int i = 0; i < size; i++) {
+        printf("%d ", arr[i]);
+    }
+}
+
+
+/* returns the wait time by calculating the average of the "tme neighbors" in 
+   the wait matrix */
+int calculateWait(int matrix[MAX_ROWS][MAX_COLS], int index, int segments) {
+	int a = matrix[index][segments];
+	int b = matrix[index][segments + 1];
+
+	return (a + b) / 2; 
 }
 
 /*............................................................................*/
@@ -262,13 +352,35 @@ int main() {
 /*............................................................................*/
 
 	// defining variables we will use 
+
+	// reading in pointers to lists we need 
 	cJSON *attractions = cJSON_GetObjectItemCaseSensitive(json, "Evaluate535Only");
-	int rows = cJSON_GetArraySize(attractions);
-	int cols = cJSON_GetArraySize(attractions);
-	cJSON *distanceData = cJSON_GetObjectItem(json, "DistanceMatrix");
-	cJSON *waitData = cJSON_GetObjectItem(json, "WaitMatrix");
 	cJSON *rideMatrix = cJSON_GetObjectItem(json, "RideMatrix");
 
+	// rows can be used to represent length 
+	int rows = cJSON_GetArraySize(attractions);
+	int cols = cJSON_GetArraySize(attractions);
+	
+	// saving the location of matrices to later make them into a 2D array 
+	cJSON *distanceData = cJSON_GetObjectItem(json, "DistanceMatrix");
+	cJSON *waitData = cJSON_GetObjectItem(json, "WaitMatrix");
+
+	// reading in vars
+	cJSON *start = cJSON_GetObjectItemCaseSensitive(json, "Start");
+	int startTime = cJSON_GetNumberValue(start);
+	cJSON *sliceLength = cJSON_GetObjectItemCaseSensitive(json, "TimesliceLength");
+	int segment = cJSON_GetNumberValue(sliceLength);
+
+
+	cJSON *attractionKey = cJSON_GetObjectItemCaseSensitive(json, "AttractionsToInclude");
+	int *key = malloc(rows * sizeof(int));
+	cJSON *l;
+	int j = 0;
+	cJSON_ArrayForEach(l, attractionKey) {
+		*(key + j) = atoi(strtok(l-> valuestring, "HS"));
+		j++;
+	}
+        
 /*............................................................................*/
 
 
@@ -313,6 +425,8 @@ int main() {
 
 /*............................................................................*/
 
+	// copying the data from the wait matrix into a C array 
+
 	int wait_row_idx = 0;
 	cJSON *waitRowArray, *waitCellValue;
 	int waitMatrix[MAX_ROWS][MAX_COLS];
@@ -354,6 +468,7 @@ int main() {
 	}
 
 /*............................................................................*/
+	
 	// creating an array for the attractions + determining max attraction
     if (cJSON_IsArray(attractions)) {
 		cJSON *i;
@@ -368,8 +483,15 @@ int main() {
 		int maxAttraction = getMax(attractionLabels, rows);
 
 		int rideMatrixTotal = 0;
-		cJSON_ArrayForEach(i, rideMatrix) {
-			rideMatrixTotal = rideMatrixTotal + i -> valueint;
+		
+		cJSON* rideValue;
+		int *rideMatrixArray = malloc(rows * sizeof(int));
+		int ride = 0;
+
+		cJSON_ArrayForEach(rideValue, rideMatrix) {
+			rideMatrixTotal += rideValue -> valueint;
+			*(rideMatrixArray + ride) = rideValue -> valueint;  // Store the value in the allocated memory
+			ride++;
 		}
 
 /*............................................................................*/
@@ -379,21 +501,16 @@ int main() {
 		printf("\n");
 
 		printf("Original array: ");
-
-        for (int i = 0; i < rows; i++) {
-            printf("%d ", attractionLabels[i]);
-        }        
+		printArray(attractionLabels, rows);
 		printf("\n\n");
 
 		printf("Max Attraction: %d\n\n", maxAttraction);
 
 		printf("Original Distance Matrix: \n\n");
-
 		printMatrix(rows, cols, distanceMatrix);
-
 		printf("\n");
 
-		unsigned long** adjustedMatrix = createMatrix(maxAttraction, maxAttraction, distanceMatrix, attractionLabels, rows);
+		unsigned long** adjustedMatrix = createMatrix(maxAttraction, maxAttraction, distanceMatrix, key, rows);
 
 		printDash();
 
@@ -416,20 +533,29 @@ int main() {
 
 		printf("Total walking time of entered sequence: %d minutes - %0.2f hours\n", original_cost, ((float)original_cost) / 60);
 
+		int *orig = (int*)malloc(rows * sizeof(int));
+		    for (int i = 0; i < rows; i++) {
+        		orig[i] = attractionLabels[i];
+    		}
+
+		// implementing Lin-Kernighan 
 		int *original_tour = attractionLabels;
 		int best_cost = original_cost;
 		int *best_tour = original_tour;
-		int max_loops = 100;
+		int max_loops = 1000;
 		int new_tour[MAX_TOUR], new_cost;
 
 		printf("\nOrig. Array: ");
-		for (int i = 0; i < rows; i++) {
-			printf("%d ", best_tour[i]);
-		}
+		printArray(orig, rows);
 		printf("\n\n");
 
 		srand(time(NULL));
 
+		// clocking CPU
+		clock_t start_time, end_time;
+		start_time = clock(); 
+
+		// algorithm implementation
 		while (max_loops-- > 0) {
 			int p1 = (rand() % (rows - 2)) + 1;
 			int p2 = p1;
@@ -443,25 +569,21 @@ int main() {
 			int gain = original_cost - new_cost; 
 
 			if (gain > 0) {
-				clock_t start_time, end_time;
-    			start_time = clock(); 
 
 				if (new_cost < best_cost) {
 					best_cost = new_cost;
 					memcpy(best_tour, new_tour, rows * sizeof(int));
+					printf("Found new best tour of %d cost\n", best_cost);
 				}
 
 				memcpy(original_tour, best_tour, rows * sizeof(int));
 				shuffleArray(original_tour, rows);
 
 				end_time = clock();
-				// not sure if this is right
 				double cpu_time_used = ((double) (end_time - start_time)) / CLOCKS_PER_SEC;
 
-				printf("Optimized Array: ");
-				for (int i = 0; i < rows; i++) {
-					printf("%d ", new_tour[i]);
-				}
+				printf("Current Array: ");
+				printArray(new_tour, rows);
 				printf("| Cost: %d | ", new_cost);
 				printf("CPU: %f seconds\n", cpu_time_used);
 
@@ -470,13 +592,53 @@ int main() {
 
 		printf("\nTotal walking time after Lin-Kernighan: %d minutes - %0.2f hours\n", best_cost, ((float)best_cost) / 60);
 		printf("Total time including ride matrix: %d\n\n", rideMatrixTotal + best_cost);
+		
 		printf("Most Optimal Tour: ");
-		for (int i = 0; i < rows; i++) {
-			printf("%d ", best_tour[i]);
+		printArray(best_tour, rows);
+
+		printf("\nKey: ");
+		printArray(key, rows);
+
+		// finding what row each value in best tour is 
+		int newIndices[rows];
+		generateNewIndices(best_tour, rows, key, newIndices);
+		printf("\n\nNew Indices: ");
+		printArray(newIndices, rows);
+
+		// printing start time in clock format
+		char* startTimeStr = clockTime(startTime);
+		printf("\n\n\nStart Time: %s\n", startTimeStr);
+		free(startTimeStr);
+
+		/* the loop to figure out the arrival time, mount time, and dismount time
+		   for each attraction */
+		int off_time = startTime;
+		for (int i = 1; i < rows - 1; i++) {
+			int arrival_time = off_time + (int)adjustedMatrix[best_tour[i - 1]][best_tour[i]];
+			char* arrivalTimeStr = clockTime(arrival_time);
+			printf("\nArrives at %d: %s\n", best_tour[i], arrivalTimeStr);
+			free(arrivalTimeStr); // Free the memory allocated by clockTime
+
+			int mount_time = arrival_time + calculateWait(waitMatrix, newIndices[i], calculateSegments(startTime, arrival_time, segment));
+			char* mountTimeStr = clockTime(mount_time);
+			printf("Mounts attraction at %s\n", mountTimeStr);
+			free(mountTimeStr); // Free the memory allocated by clockTime
+
+			off_time = mount_time + rideMatrixArray[newIndices[i]];
+			char* getTimeStr = clockTime(off_time);
+			printf("Gets off attraction at %s\n", getTimeStr);
+			free(getTimeStr); // Free the memory allocated by clockTime
 		}
+
+		// calculate the time it takes to walk back to 37 (the entrance)
+		end_time = off_time + (int)adjustedMatrix[best_tour[rows - 2]][best_tour[rows - 1]];
+		char* finish_time = clockTime(end_time);
+		printf("\nArrives back to park entrance at %s\n", finish_time);
+		free(finish_time);
 
 		printDash();
 
+		// useful for checking if the above loop is correct 
 		printf("Individual Ride-Combo Calculations: \n\n");
 
 		for (int i = 0; i < rows - 1; i++) {
@@ -492,6 +654,9 @@ int main() {
 		}
 		free(attractionLabels);
 		free(adjustedMatrix);
+		free(orig);
+		free(rideMatrixArray);
+		free(key);
 
 
 	}   
