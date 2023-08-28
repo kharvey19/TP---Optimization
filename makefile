@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c99
-TARGET = readAttractions findDistance linK revSub
-SOURCE = readAttractions.c findDistance.c linK.c revSub.c
+TARGET = readAttractions findDistance linK revSub allPermutations
+SOURCE = readAttractions.c findDistance.c linK.c revSub.c allPermutations
 OBJECT = $(SOURCE:.c=.o)
 
 all: $(TARGET)

@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <string.h>
+#include "functions.h"
 
 /*............................................................................*/
 
@@ -635,6 +636,8 @@ int main() {
 		char* finish_time = clockTime(end_time);
 		printf("\nArrives back to park entrance at %s\n", finish_time);
 		free(finish_time);
+
+		printf("\nTotal time: %lu", end_time - startTime);
 
 		printDash();
 
