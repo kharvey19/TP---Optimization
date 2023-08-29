@@ -8,7 +8,6 @@
 #include <string.h>
 #include "functions.h"
 
-#define HASH_SIZE 10000
 
 
 /* How to compile and use code:
@@ -31,11 +30,29 @@ struct StorageResult {
     int count;
 };
 
-// Create a hash table to store unique elements and their counts
+// represents an individual element in the hash table
 struct HashNode {
-    int number;
+    // value stored in the hash table 
+    int key;
+    /* used to keep track of how many times a specific key appears in
+       the input list */
     int count;
+    /* used to point to the next node in the linked list at a 
+       particular hash index */ 
     struct HashNode* next;
+};
+
+// holds an array of pointers to HashNode instances and a size (for storing data)
+struct HashTable {
+    /* represents the number of slots in the hash table.
+       Each slot can store a linked list of "HashNode" instances */
+    int size;
+    /* This is a dynamic array (array of pointers to HashNode pointers) 
+       that will hold the buckets or slots. Each element of this array 
+       points to the head of a linked list of HashNode instances. The 
+       actual linked list handles collisions by chaining nodes that hash 
+       to the same index. */
+    struct HashNode** table;
 };
 
 // factorial function used for finding total number of permutations 
@@ -46,6 +63,75 @@ int factorial(int n) {
     return n * factorial(n - 1);
 }
 
+// used to insert a new key into the hash table 
+void insert(struct HashTable* hashTable, int key) {
+    
+    /* calculate the index by taking the remainder of the key when divided
+       by the size of the hash table */
+    int index = key % hashTable->size;
+
+    // check if the key is already present
+    struct HashNode* current = hashTable->table[index];
+    while (current != NULL) {
+        if (current->key == key) {
+            // key is already present, increase the count
+            current->count++;
+            return;
+        }
+        current = current->next;
+    }
+
+    /* if not present, create a new node for the key and insert it at
+       the beginning of the linked list */
+    struct HashNode* newNode = (struct HashNode*)malloc(sizeof(struct HashNode));
+    if (newNode == NULL) {
+        perror("Memory allocation failed");
+        exit(1);
+    }
+
+    // create new node for the key 
+    newNode->key = key;
+    newNode->count = 1;
+    newNode->next = hashTable->table[index];
+    hashTable->table[index] = newNode;
+}
+
+// print keys and their counts from the hash table
+void printHash(struct HashTable* hashTable) {
+    for (int i = 0; i < hashTable->size; i++) {
+        struct HashNode* current = hashTable->table[i];
+        while (current != NULL) {
+            printf("Total Time: %d | Count: %d\n", current->key, current->count);
+            current = current->next;
+        }
+    }
+}
+
+/*  creates a hash table by taking a size as input, allocating memory for a hash table,
+    allocating memory for the array of buckets, initializing each bucket to NULL, and then 
+    returning the created hash table.*/
+struct HashTable* createHashTable(int size) {
+
+    struct HashTable* hashTable = (struct HashTable*)malloc(sizeof(struct HashTable));
+    if (hashTable == NULL) {
+        perror("Memory allocation failed");
+        exit(1);
+    }
+
+    hashTable->size = size;
+    hashTable->table = (struct HashNode**)malloc(size * sizeof(struct HashNode*));
+    if (hashTable->table == NULL) {
+        perror("Memory allocation failed");
+        exit(1);
+    }
+
+    // Initialize table entries to NULL
+    for (int i = 0; i < size; i++) {
+        hashTable->table[i] = NULL;
+    }
+
+    return hashTable;
+}
 
 // Lin-Kernighan Algorithm 
 int lin(int* attractionLabels, int rows, int* key, int startTime, unsigned long** adjustedMatrix, int waitMatrix[MAX_ROWS][MAX_COLS], int *rideMatrixArray){
@@ -112,39 +198,52 @@ int lin(int* attractionLabels, int rows, int* key, int startTime, unsigned long*
 
 }
 
-// make a function that finds all possible permutations of the list
-struct StorageResult brheap_nonrecur(int arr[], int length, int* key, int startTime, unsigned long** adjustedMatrix, int waitMatrix[MAX_ROWS][MAX_COLS], int *rideMatrixArray) {
+// function that finds all possible permutations of the list
+struct StorageResult brheap_nonrecur(int* arr, int length, int* key, int startTime, unsigned long** adjustedMatrix, int waitMatrix[MAX_ROWS][MAX_COLS], int *rideMatrixArray) {
 
-    int numPermutations = factorial(length - 2); // Adjust the number of permutations accordingly
+    // finds number of permutations for the length of the array (without the first and last element)
+    int numPermutations = factorial(length - 2); 
+    
+    // dynamic array that will hold the calculated times for each array
     int* storage = (int*)malloc(numPermutations * sizeof(int));
 
     int count = 0;
+
+    // I is used to keep track of the current index used during the permutation generation 
+
+    // s is used as a counter move through the array and control permutation generation 
     int I[length - 3], s;
 
-    for (s = 0; s < length - 3; s++) { // Adjust the loop limits
+    for (s = 0; s < length - 3; s++) { 
         I[s] = 0;
     }  
-    s = length - 4; // Adjust the initial value of s
+    s = length - 4; 
 
     printf("\nAttractions: ");
     printArray(arr, length);
-    printf("\n\n");
+    printf("\n");
 
-    // Calculate and store the total time for the initial arrangement (without the first and last elements)
+    // calculate and store the total time for the initial arrangement (without the first and last elements)
     storage[count] = lin(arr, length, key, startTime, adjustedMatrix, waitMatrix, rideMatrixArray);
     // printf("Index: %d, Time: %d\n", count, storage[count]);
     count++;
 
     int index = 1;
     while (s >= 0) {
-        
-        if (I[s] < length - s - 3) { // Adjust the range for swapping
+
+        // swaps within the valid range  
+        if (I[s] < length - s - 3) {
+
+            // increments the current index to progress through the array 
             I[s]++;
-            // Setup Block
-            if ((length - s - 2) % 2 != 0) { // Adjust the condition
-                swap(&arr[s + 1], &arr[length - 2]); // Adjust the indices
+            
+            // checks whether the number of elements being swapped is odd
+            if ((length - s - 2) % 2 != 0) { 
+
+                // swaps while excluding first and last element
+                swap(&arr[s + 1], &arr[length - 2]); 
             } else {
-                swap(&arr[s + 1], &arr[length - I[s] - 1]); // Adjust the indices
+                swap(&arr[s + 1], &arr[length - I[s] - 1]); 
             }
 
             // Calculate and store the total time for the new arrangement (without the first and last elements)
@@ -155,16 +254,22 @@ struct StorageResult brheap_nonrecur(int arr[], int length, int* key, int startT
             // Increment count
             count++;
 
+            // reset s 
             s = length - 4;
         } else {
+
+            // if the current index has reached its maximum value, reset it and move to the previous index 
             I[s] = 0;
             s = s - 1;
         }
     
     }
 
-    printf("\nCount: %d\n\n", count);
+    // print number of permutations 
+    printf("\nPermutations: %d\n\n", count);
 
+
+    // packages the array of times and the number of permutations, so we can use both later
     struct StorageResult result;
     result.storageArray = storage;
     result.count = count;
@@ -205,7 +310,7 @@ int cmpfunc (const void * a, const void * b) {
 }
 
 int main() {
-    int arr[] = {37,103,104,112,37};
+    int arr[] = {37,103,104,20,15,95,111,22,7,113,112,37};
     int length = sizeof(arr) / sizeof(arr[0]);
 
     // reads json file so we can use it 
@@ -377,7 +482,7 @@ int main() {
 
         unsigned long** adjustedMatrix = createMatrix(maxAttraction, maxAttraction, distanceMatrix, key, rows);
         
-        struct StorageResult result = brheap_nonrecur(arr, length, key, startTime, adjustedMatrix, waitMatrix, rideMatrixArray);
+        struct StorageResult result = brheap_nonrecur(attractionLabels, rows, key, startTime, adjustedMatrix, waitMatrix, rideMatrixArray);
 
         int* storage_list = result.storageArray;
         int count = result.count;
@@ -385,80 +490,96 @@ int main() {
         int largest = max(storage_list, count);
         int smallest = min(storage_list, count);
 
-        struct pairs* storage = (struct pairs*)malloc(count * sizeof(struct pairs));
+        struct HashTable* hashTable = createHashTable(count);
 
-        // printf("Storage List (total time per permutation): ");
-        // for (int i = 0; i < count; i++) {
-        //     printf("%d ", *(storage_list + i));
-        // }
-        // printf("\n\n");
+        // Traverse the storage list and update the hash table
+        for (int i = 0; i < count; i++) {
+            int number = storage_list[i];
+            insert(hashTable, number);
+        }
+
+        // Print unique numbers and their counts from the hash table
+        printHash(hashTable);
+
+        free(hashTable->table);
+        free(hashTable);
+
+
+
+        // struct pairs* storage = (struct pairs*)malloc(count * sizeof(struct pairs));
+
+        // // printf("Storage List (total time per permutation): ");
+        // // for (int i = 0; i < count; i++) {
+        // //     printf("%d ", *(storage_list + i));
+        // // }
+        // // printf("\n\n");
         
-        // puts the storage list in ascending order 
-        qsort(storage_list, count, sizeof(int), cmpfunc); 
+        // // puts the storage list in ascending order 
+        // qsort(storage_list, count, sizeof(int), cmpfunc); 
 
-        // printf("\nStorage List Sorted: ");
-        // for (int i = 0; i < count; i++) {
-        //     printf("%d ", *(storage_list + i));
-        // }
+        // // printf("\nStorage List Sorted: ");
+        // // for (int i = 0; i < count; i++) {
+        // //     printf("%d ", *(storage_list + i));
+        // // }
 
-        int index_str = 0;
-        int count_str = 0;
-
-        for (int i = 0; i < count; i++) {
-            for (int j = 0; j < count; j++) {
-                if (*(storage_list + index_str) == storage_list[j]) {
-                    count_str += 1;
-                }
-            }
-            storage[i].number = *(storage_list + index_str);
-            storage[i].count = count_str;
-
-            count_str = 0; 
-            index_str++;
-        }
+        // int index_str = 0;
+        // int count_str = 0;
 
         // for (int i = 0; i < count; i++) {
-        //     printf("%d ", storage[i].number);
+        //     for (int j = 0; j < count; j++) {
+        //         if (*(storage_list + index_str) == storage_list[j]) {
+        //             count_str += 1;
+        //         }
+        //     }
+        //     storage[i].number = *(storage_list + index_str);
+        //     storage[i].count = count_str;
+
+        //     count_str = 0; 
+        //     index_str++;
         // }
-        // printf("\n"); 
 
-        struct pairs* unique = (struct pairs*)malloc(count * sizeof(struct pairs));
-        int uniqueCount = 0; // Use a separate variable to keep track of unique elements count
+        // // for (int i = 0; i < count; i++) {
+        // //     printf("%d ", storage[i].number);
+        // // }
+        // // printf("\n"); 
 
-        for (int i = 0; i < count; i++) {
-            int matches = 0;
+        // struct pairs* unique = (struct pairs*)malloc(count * sizeof(struct pairs));
+        // int uniqueCount = 0; // Use a separate variable to keep track of unique elements count
 
-            for (int j = 0; j < uniqueCount; j++) {
-                if (storage[i].number == unique[j].number && storage[i].count == unique[j].count) {
-                    matches += 1; 
-                }
-            }
+        // for (int i = 0; i < count; i++) {
+        //     int matches = 0;
 
-            if (matches == 0) {
-                unique[uniqueCount].number = storage[i].number;
-                unique[uniqueCount].count = storage[i].count;
-                uniqueCount++; 
-            }
-        }
+        //     for (int j = 0; j < uniqueCount; j++) {
+        //         if (storage[i].number == unique[j].number && storage[i].count == unique[j].count) {
+        //             matches += 1; 
+        //         }
+        //     }
+
+        //     if (matches == 0) {
+        //         unique[uniqueCount].number = storage[i].number;
+        //         unique[uniqueCount].count = storage[i].count;
+        //         uniqueCount++; 
+        //     }
+        // }
 
 
-        // printf("Unique List: ");
+        // // printf("Unique List: ");
+        // // for (int i = 0; i < uniqueCount; i++) {
+        // //     printf("%d ", unique[i].number);
+        // // }
+        // // printf("\n");
+
+        // // printf("%d\n", uniqueCount);
+
         // for (int i = 0; i < uniqueCount; i++) {
-        //     printf("%d ", unique[i].number);
+        //     // if ((unique[i].number <= largest) && (unique[i].number >= smallest) && (unique[i].number != 0)) {
+        //         printf("%d, %d\n", unique[i].number, unique[i].count);
+        //     // }
         // }
         // printf("\n");
 
-        // printf("%d\n", uniqueCount);
-
-        for (int i = 0; i < uniqueCount; i++) {
-            // if ((unique[i].number <= largest) && (unique[i].number >= smallest) && (unique[i].number != 0)) {
-                printf("%d, %d\n", unique[i].number, unique[i].count);
-            // }
-        }
-        printf("\n");
-
-        free(storage_list);
-        free(unique);
+        // free(storage_list);
+        // free(unique);
     
     }
     
