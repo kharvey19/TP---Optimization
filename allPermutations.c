@@ -243,7 +243,10 @@ struct StorageResult brheap_nonrecur(int* arr, int length, int* key, int startTi
                 // swaps while excluding first and last element
                 swap(&arr[s + 1], &arr[length - 2]); 
             } else {
+                // if even swap the ith element and the last element 
                 swap(&arr[s + 1], &arr[length - I[s] - 1]); 
+
+                // ^ repeat this until i is less than n
             }
 
             // Calculate and store the total time for the new arrangement (without the first and last elements)
